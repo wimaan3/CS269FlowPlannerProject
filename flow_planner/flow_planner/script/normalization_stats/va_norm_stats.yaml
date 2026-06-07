@@ -1,0 +1,64 @@
+# Velocity / Acceleration normalization stats.
+#
+# Target schema: (channel_x, channel_y, cos h, sin h) where channel_x/y is either
+#   - velocity (v_x, v_y) — for the velocity representation
+#   - acceleration (a_x, a_y) — for the acceleration representation
+#
+# These are conservative defaults based on typical nuPlan urban-driving statistics:
+#   - velocity envelope:     mean (5, 0), std (5, 1) m/s
+#   - acceleration envelope: mean (0, 0), std (2, 1) m/s²
+#
+# The shared YAML uses the larger envelope (velocity dominates) so a single config
+# can serve both Velocity and Acceleration training paths. To replace these with
+# values measured from your actual preprocessed cache, run:
+#
+#     python scripts/measure_va_norm_stats.py \
+#         --cache-dir /path/to/preprocessed_cache \
+#         --output-yaml flow_planner/flow_planner/script/normalization_stats/va_norm_stats.yaml
+#
+# Scene-input feature sections (ego_past, ego_current, etc.) are
+# representation-agnostic and copied verbatim from waypoints_norm_stats.yaml.
+
+ego:
+  log: {}
+  uniform:
+    mean: [5, 0, 0, 0]
+    std: [5, 2, 1, 1]
+
+neighbor:
+  log: {}
+  uniform:
+    mean: [5, 0, 0, 0]
+    std: [5, 2, 1, 1]
+
+ego_past:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 1, 1, 20, 20, 20, 20, 20, 20, 1, 1, 1, 1]
+
+ego_current:
+  mean: [10, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 1, 1, 5, 1, 1, 1, 1, 1, 20, 20, 1, 1, 1, 1]
+
+neighbor_past:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 1, 1, 20, 20, 20, 20, 1, 1, 1]
+
+map_objects:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 1, 1, 20, 20, 1, 1, 1, 1]
+
+lanes:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 20, 20, 20, 20, 20, 20, 1, 1, 1, 1]
+
+lanes_speedlimit:
+  mean: [0]
+  std: [20]
+
+routes:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 20, 20, 20, 20, 20, 20, 1, 1, 1, 1]
+
+routes_speedlimit:
+  mean: [0]
+  std: [20]

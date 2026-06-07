@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+*.env
+!.env.example
+
+# Jupyter / Colab
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# nuPlan data — never commit raw or preprocessed data
+*.db
+*.npz
+*.gpkg
+nuplan_data/
+nuplan_cache/
+nuplan_mini/
+nuplan_maps/
+data/cache/
+diffusion_planner_training.json
+
+# Model checkpoints + training artifacts
+*.ckpt
+*.pt
+*.pth
+checkpoints/
+lightning_logs/
+runs/
+outputs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+
+# Personal scratch — anything starting with scratch_ or _local_
+scratch_*
+_local_*
+
+# PDF build intermediates (auto-generated, not source-of-truth)
+docs/*.html
+docs/_*_plots/
+report/main.aux
+report/main.bbl
+report/main.blg
+report/main.log
+report/main.out
+report/main.toc
+
+# Local-only docs working directories (slides, report drafts, scratch assets)
+docs/_*/

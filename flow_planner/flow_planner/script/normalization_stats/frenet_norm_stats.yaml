@@ -1,0 +1,69 @@
+# Normalization stats for kinematic='frenet'.
+#
+# Target trajectory is (s, d, cos_h, sin_h) where:
+#   s        — arc length along reference centerline (meters, 0 to ~120 over 8s)
+#   d        — signed lateral offset from centerline (meters; with our current
+#              centerline-selection strategy actual std is ~15m due to many
+#              scenarios where reference centerline is far from ego trajectory)
+#   cos_h    — heading cosine (world frame)
+#   sin_h    — heading sine (world frame)
+#
+# Stats measured from 1500 mini-split preprocessed scenarios (2026-05-24):
+#   s: mean=31.18, std=25.63, min=0.45, max=123.95
+#   d: mean=-0.53, std=15.50, min=-61.59, max=73.67
+#
+# NOTE (2026-05-29 audit Finding 1): the d-std=15.50 value is from a
+# pre-bugfix cache (frame-mismatch bug — see CS269_NOTES §7). The
+# (s, d) numbers below are placeholders pending re-measurement on a
+# post-bugfix Colab cache via scripts/measure_frenet_stats.py +
+# update_frenet_norm_stats.py (notebook cell 40 / 42).
+#
+# Heading std bumped from 0.3 to 1.0 to match waypoints_norm_stats.yaml
+# convention (audit Finding 1 — std=0.3 inflated heading gradient ~11x
+# relative to the (s, d) channels under sum-over-channels MSE).
+
+ego:
+  log: {}
+  uniform:
+    mean: [31, 0, 1, 0]
+    std: [26, 16, 1.0, 1.0]
+
+neighbor:
+  log: {}
+  uniform:
+    mean: [31, 0, 1, 0]
+    std: [26, 16, 1.0, 1.0]
+
+# The following are unchanged from waypoints_norm_stats.yaml — they apply to
+# input features (past states, lane geometry, etc.), not the prediction target.
+ego_past:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 1, 1, 20, 20, 20, 20, 20, 20, 1, 1, 1, 1]
+
+ego_current:
+  mean: [10, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 1, 1, 5, 1, 1, 1, 1, 1, 20, 20, 1, 1, 1, 1]
+
+neighbor_past:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 1, 1, 20, 20, 20, 20, 1, 1, 1]
+
+map_objects:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 1, 1, 20, 20, 1, 1, 1, 1]
+
+lanes:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 20, 20, 20, 20, 20, 20, 1, 1, 1, 1]
+
+lanes_speedlimit:
+  mean: [0]
+  std: [20]
+
+routes:
+  mean: [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  std: [20, 20, 20, 20, 20, 20, 20, 20, 1, 1, 1, 1]
+
+routes_speedlimit:
+  mean: [0]
+  std: [20]
