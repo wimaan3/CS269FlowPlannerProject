@@ -1,4 +1,6 @@
 import math
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -223,3 +225,97 @@ class TimestepEmbedder(nn.Module):
         t_freq = self.timestep_embedding(t, self.frequency_embedding_size, self.max_period)
         t_emb = self.mlp(t_freq)
         return t_emb
+
+
+class VAIntegrator(nn.Module):
+    """Euler-integrate predicted (v_x, v_y, a_x, a_y) channels into xy.
+
+    Only the velocity channels are used for integration — acceleration is
+    supervised directly via VALoss but does not feed back into the integrated
+    trajectory. Matches the team's headline 5k V+A run (DagsHub fork).
+    """
+
+    def __init__(self, dt: float = 0.1):
+        super().__init__()
+        self.dt = dt
+
+    def forward(
+        self,
+        va: torch.Tensor,
+        x0: Optional[torch.Tensor] = None,
+        v0: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        B, T, _ = va.shape
+        dt = self.dt
+
+        vx = va[..., 0]
+        vy = va[..., 1]
+
+        if x0 is None:
+            x0 = torch.zeros(B, 2, device=va.device, dtype=va.dtype)
+
+        xs, ys = [], []
+        px = x0[:, 0]
+        py = x0[:, 1]
+        for t in range(T):
+            px = px + vx[:, t] * dt
+            py = py + vy[:, t] * dt
+            xs.append(px)
+            ys.append(py)
+
+        x_traj = torch.stack(xs, dim=1)
+        y_traj = torch.stack(ys, dim=1)
+        return torch.stack([x_traj, y_traj], dim=-1)
+
+
+class VALoss(nn.Module):
+    """Weighted multi-term loss for the combined V+A model.
+
+    L_total = w_v * MSE(v) + w_a * MSE(a) + w_p * MSE(integrate(v), xy_gt)
+
+    The position term is computed by Euler-integrating the predicted velocity
+    channels (NOT a separately predicted xy), so it acts as a kinematic-
+    consistency penalty on the velocity head rather than an independent
+    position prediction loss.
+    """
+
+    def __init__(self, w_v: float = 1.0, w_a: float = 0.5, w_p: float = 0.2, dt: float = 0.1):
+        super().__init__()
+        self.w_v = w_v
+        self.w_a = w_a
+        self.w_p = w_p
+        self.integrator = VAIntegrator(dt=dt)
+
+    def forward(
+        self,
+        va_pred: torch.Tensor,
+        va_gt: torch.Tensor,
+        xy_gt: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None,
+    ) -> dict:
+        if mask is not None:
+            m = mask.unsqueeze(-1).float()
+        else:
+            m = torch.ones_like(va_pred[..., :1])
+
+        v_pred = va_pred[..., :2] * m
+        a_pred = va_pred[..., 2:] * m
+        v_gt = va_gt[..., :2] * m
+        a_gt = va_gt[..., 2:] * m
+
+        loss_v = F.mse_loss(v_pred, v_gt)
+        loss_a = F.mse_loss(a_pred, a_gt)
+
+        loss_p = torch.tensor(0.0, device=va_pred.device)
+        if self.w_p > 0.0 and xy_gt is not None:
+            xy_pred = self.integrator(va_pred)
+            loss_p = F.mse_loss(xy_pred * m, xy_gt * m)
+
+        total = self.w_v * loss_v + self.w_a * loss_a + self.w_p * loss_p
+
+        return {
+            "loss": total,
+            "loss_v": loss_v,
+            "loss_a": loss_a,
+            "loss_p": loss_p,
+        }

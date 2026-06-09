@@ -21,6 +21,37 @@ class ModelInputProcessor:
     def state_postprocess(self, x):
         return self.state_normalizer.inverse(x) if self.state_normalizer is not None else x
 
+    def va_to_waypoints(self, motion, ego_current_state):
+        """Integrate a predicted V+A trajectory back into waypoints.
+
+        Args:
+            motion: Tensor of shape (B, P, T, 4) — channels (v_x, v_y, a_x, a_y)
+                in raw m/s and m/s^2 (NOT state-normalized).
+            ego_current_state: The original ego state tensor; first 4 channels
+                are (x, y, cos h, sin h) in raw world frame.
+
+        Returns:
+            Tensor of shape (B, P, T, 3) — (x, y, heading). xy is Euler-
+            integrated from v_x, v_y with dt=0.1; heading is derived from the
+            velocity direction with a current-heading fallback at low speeds
+            (|v| < 1e-3 m/s).
+        """
+        dt = 0.1
+        current_xy = ego_current_state[..., :2].to(motion.device)
+        current_heading = torch.atan2(
+            ego_current_state[..., 3:4], ego_current_state[..., 2:3]
+        ).to(motion.device)
+        current_xy = current_xy[:, None, None, :]
+        current_heading = current_heading[:, None, None, :]
+
+        future_xy = current_xy + torch.cumsum(motion[..., :2] * dt, dim=-2)
+        speed = torch.linalg.vector_norm(motion[..., :2], dim=-1, keepdim=True)
+        velocity_heading = torch.atan2(motion[..., 1:2], motion[..., 0:1])
+        heading = torch.where(speed > 1e-3, velocity_heading, current_heading.expand_as(velocity_heading))
+        # Wrap to (-pi, pi].
+        heading = torch.atan2(heading.sin(), heading.cos())
+        return torch.cat([future_xy, heading], dim=-1)
+
     def x_differentiate(self, x_future, x_current):
         x_all = torch.cat([x_current, x_future], dim=-2)
         return x_all[..., 1:, :] - x_all[..., :-1, :]
@@ -132,6 +163,33 @@ class ModelInputProcessor:
             gt_with_current = torch.cat([current_velocity, future_acc], dim=-2)
             # Symmetry fix: same as velocity branch above.
             gt_with_current[..., 1:, :] = self.state_normalizer(gt_with_current[..., 1:, :])
+        elif kinematic == 'va':
+            # Combined V+A representation: 4 channels per future timestep
+            # = (v_x, v_y, a_x, a_y). The initial slot t=0 stores the current
+            # xy twice (xyxy) so the tensor shape matches the action_len /
+            # future_len assumptions used elsewhere — VALoss strips this row
+            # via assemble_actions during training.
+            #
+            # IMPORTANT: targets are NOT normalized. VALoss / VAIntegrator
+            # operate in raw m/s and m/s^2 so they can Euler-integrate to
+            # meters for the position-consistency term. Applying
+            # state_normalizer here would break that integration.
+            gt_with_current = torch.cat([
+                gt_with_current[..., :2],
+                torch.cat([
+                    gt_with_current[..., 2:3].cos(),
+                    gt_with_current[..., 2:3].sin()
+                ], dim=-1)
+            ], dim=-1)
+            future_velocity = self.x_differentiate(gt_with_current[..., 1:, :], gt_with_current[..., :1, :])
+            current_velocity = torch.cat([
+                ego_current_state[..., 4:6],
+                torch.zeros_like(ego_current_state[..., 4:6])
+            ], dim=-1)[:, None, None, :]
+            future_acc = self.x_differentiate(future_velocity, current_velocity)
+            va = torch.cat([future_velocity[..., :2], future_acc[..., :2]], dim=-1)
+            current_xyxy = gt_with_current[..., :1, :2].repeat(1, 1, 1, 2)
+            gt_with_current = torch.cat([current_xyxy, va], dim=-2)
         elif kinematic == 'frenet':
             # NOTE: Frenet branch currently handles ONLY the ego trajectory.
             # The state_normalizer used by the production Frenet config is

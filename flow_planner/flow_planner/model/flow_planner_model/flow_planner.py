@@ -22,7 +22,7 @@ class FlowPlanner(DiffusionADPlanner):
         flow_ode,
         
         model_type: Literal['x_start', 'noise', 'velocity'] = 'x_start',
-        kinematic: Literal["waypoints", "velocity", "acceleration", "frenet"] = 'waypoints',
+        kinematic: Literal["waypoints", "velocity", "acceleration", "frenet", "va"] = 'waypoints',
     
         assemble_method='linear',
         
@@ -110,7 +110,41 @@ class FlowPlanner(DiffusionADPlanner):
 
         self.planner_params = planner_params # including the action_len, future_len etc.
         self.action_num = (self.planner_params['future_len'] - self.planner_params['action_overlap']) // (self.planner_params['action_len'] - self.planner_params['action_overlap'])
-        
+
+        # Expected target dimensionality per kinematic representation. Catches
+        # state_dim/kinematic mismatches at construction time instead of via a
+        # cryptic shape error inside the loss block. 4-channel kinematics:
+        #   waypoints  -> (x, y, cos h, sin h)
+        #   frenet     -> (s, d, cos h, sin h)
+        #   va         -> (v_x, v_y, a_x, a_y)        # combined V+A model
+        # 3-channel kinematics:
+        #   velocity     -> (v_x, v_y, ??)    legacy separate model
+        #   acceleration -> (a_x, a_y, ??)    legacy separate model
+        expected_state_dims = {
+            'waypoints': 4,
+            'velocity': 3,
+            'acceleration': 3,
+            'frenet': 4,
+            'va': 4,
+        }
+        if kinematic not in expected_state_dims:
+            raise ValueError(f"Unsupported kinematic representation: {kinematic}")
+        expected_state_dim = expected_state_dims[kinematic]
+        if self.planner_params['state_dim'] != expected_state_dim:
+            raise ValueError(
+                f"kinematic='{kinematic}' requires model.state_dim={expected_state_dim}, "
+                f"but got {self.planner_params['state_dim']}"
+            )
+
+        # V+A combined model: dedicated weighted-MSE loss on (v, a) channels
+        # plus an Euler-integrated position-consistency penalty. See VALoss /
+        # VAIntegrator for the implementation. Loss weights are the same as
+        # the team's 5k headline run on DagsHub (w_v=1.0, w_a=0.5, w_p=0.2).
+        if kinematic == 'va':
+            from flow_planner.model.modules.decoder_modules import VAIntegrator, VALoss
+            self.va_integrator = VAIntegrator(dt=0.1)
+            self.va_loss = VALoss(w_v=1.0, w_a=0.5, w_p=0.2, dt=0.1)
+
         self.basic_loss = nn.MSELoss(reduction='none')
         
     def prepare_model_input(self, cfg_flags, data: NuPlanDataSample, use_cfg, is_training):
@@ -217,9 +251,40 @@ class FlowPlanner(DiffusionADPlanner):
         loss_dict = {}
         batch_loss = self.basic_loss(prediction, target_tokens)
         loss_dict['batch_loss'] = batch_loss
-        
-        loss = torch.sum(batch_loss, dim=-1) # (B, action_num, action_length, dim)
-        loss_dict['ego_planning_loss'] = loss.mean()
+
+        # Per-kinematic loss aggregation:
+        #   * 'va' (combined V+A): weighted MSE on (v_x, v_y) and (a_x, a_y)
+        #     channels plus a kinematic-consistency penalty on the integrated
+        #     xy positions (see VALoss). VALoss assumes raw m/s and m/s^2, so
+        #     the sample_to_model_input 'va' branch must NOT apply
+        #     state_normalizer to the targets.
+        #   * everything else: standard per-element MSE then mean.
+        if self.kinematic == 'va' and self._model_type == 'x_start':
+            gt_future_xy = data.ego_future[:, None, -self.planner_params['future_len']:, :2].to(self.device)
+            pred_va = assemble_actions(
+                prediction,
+                self.planner_params['future_len'],
+                self.planner_params['action_len'],
+                self.planner_params['action_overlap'],
+                self.planner_params['state_dim'],
+                self.assemble_method,
+            )[:, 0]
+            target_va = assemble_actions(
+                target_tokens,
+                self.planner_params['future_len'],
+                self.planner_params['action_len'],
+                self.planner_params['action_overlap'],
+                self.planner_params['state_dim'],
+                self.assemble_method,
+            )[:, 0]
+            va_loss = self.va_loss(pred_va, target_va, xy_gt=gt_future_xy[:, 0])
+            loss_dict['ego_planning_loss'] = va_loss['loss']
+            loss_dict['loss_v'] = va_loss['loss_v']
+            loss_dict['loss_a'] = va_loss['loss_a']
+            loss_dict['loss_p'] = va_loss['loss_p']
+        else:
+            loss = torch.sum(batch_loss, dim=-1) # (B, action_num, action_length, dim)
+            loss_dict['ego_planning_loss'] = loss.mean()
 
         if self.planner_params['action_overlap'] > 0 and prediction.shape[1] >= 2:
             # Audit Finding 5 fix: previously `range(0, prediction.shape[1]-2)`
@@ -231,9 +296,9 @@ class FlowPlanner(DiffusionADPlanner):
             consistency_loss = [torch.mean(torch.sum(self.basic_loss(prediction[:, i:i+1, -self.planner_params['action_overlap']:, :], prediction[:, i+1:i+2, :self.planner_params['action_overlap'], :]), dim=-1)) for i in range(0, prediction.shape[1]-1)]
             loss_dict['consistency_loss'] = sum(consistency_loss) / len(consistency_loss)
         else:
-            loss_dict['consistency_loss'] = torch.tensor(0.0, device=loss.device)
-        
-        assert not torch.isnan(loss).sum(), f"loss is NaN"
+            loss_dict['consistency_loss'] = torch.tensor(0.0, device=loss_dict['ego_planning_loss'].device)
+
+        assert not torch.isnan(loss_dict['ego_planning_loss']).sum(), f"loss is NaN"
         
         return prediction, loss_dict
     
@@ -255,9 +320,18 @@ class FlowPlanner(DiffusionADPlanner):
         sample = self.flow_ode.generate(x_init, self.decoder, self._model_type, use_cfg=use_cfg, cfg_weight=cfg_weight, **decoder_model_extra)
         
         sample = assemble_actions(sample, self.planner_params['future_len'], self.planner_params['action_len'], self.planner_params['action_overlap'], self.planner_params['state_dim'], self.assemble_method)
-        
-        sample = self.data_processor.state_postprocess(sample)
-        
+
+        # V+A inference: integrate the predicted (v, a) channels to recover
+        # (x, y, heading); heading is derived from the predicted velocity
+        # direction (atan2(v_y, v_x)) with a current-heading fallback at low
+        # speed. All other kinematics use the existing inverse-normalization
+        # path; downstream code (e.g. inference_eval.py for Frenet) handles
+        # any further frame conversion.
+        if self.kinematic == 'va':
+            sample = self.data_processor.va_to_waypoints(sample, data.ego_current)
+        else:
+            sample = self.data_processor.state_postprocess(sample)
+
         return sample
     
     @property
