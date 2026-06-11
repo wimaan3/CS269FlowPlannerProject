@@ -44,7 +44,21 @@ MODEL_YAML = (
 
 
 def _read_cell(idx: int) -> str:
-    """Return the joined source of cell `idx` from the v7 notebook."""
+    """Return the joined source of cell `idx` from the v7 notebook.
+
+    Skips the calling test if the notebook is not present in the working
+    tree. The v7-AUDIT retrain notebook lived under notebooks/v7_retrain.ipynb
+    during the audit phase but is not part of the published repo; the
+    audit-class regression tests below are kept for when the notebook is
+    restored.
+    """
+    if not NOTEBOOK.exists():
+        pytest.skip(
+            f"Notebook not present at {NOTEBOOK.relative_to(REPO_ROOT)}; "
+            "notebook-dependent regression tests are skipped (the bug class "
+            "they guard against still applies — restore the notebook to "
+            "re-enable them)."
+        )
     nb = json.loads(NOTEBOOK.read_text())
     cell = nb["cells"][idx]
     src = cell["source"]
