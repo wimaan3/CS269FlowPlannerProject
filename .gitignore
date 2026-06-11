@@ -58,6 +58,9 @@ desktop.ini
 *.swo
 *~
 
+# Claude Code local state
+.claude/
+
 # LaTeX build artifacts
 *.aux
 *.bbl

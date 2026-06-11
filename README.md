@@ -1,4 +1,4 @@
-# cs269-flow-planner
+# CS269FlowPlannerProject
 
 Trajectory representation ablation in flow-matching driving planners.
 
@@ -17,7 +17,7 @@ For every dependency, environment requirement, and a verification cell, see [`QU
 ## Repository layout
 
 ```
-cs269-flow-planner/
+CS269FlowPlannerProject/
 ├── README.md                 this file
 ├── QUICKSTART.md             environment setup and verification
 ├── flow_planner/             vendored fork of Flow Planner with audit patches

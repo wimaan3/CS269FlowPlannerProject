@@ -27,7 +27,7 @@ Inputs expected on disk
                      manifest. Roughly 50 scenarios is sufficient.
 - EVAL_DIRS          (optional) directories containing eval_*.json sidecar files
                      so the per-BEV metadata can include ADE/FDE numbers
-- REPO_DIR           path to a clone of cs269-flow-planner so the script can find
+- REPO_DIR           path to a clone of CS269FlowPlannerProject so the script can find
                      the inner flow_planner package and visualize_bev.py
 
 Setup steps (when running on Colab)
@@ -36,7 +36,7 @@ Setup steps (when running on Colab)
 2. Mount DagsHub jialic/dagshub-drive (provides the 80k npz cache)
 3. Copy ~50 npz scenarios from DagsHub to local Colab storage
    (the FUSE mount is too slow for direct reads from inference)
-4. Clone this repository to /content/cs269-flow-planner
+4. Clone this repository to /content/CS269FlowPlannerProject
 5. Run this script with arguments pointing at the above paths
 
 Setup steps (when running locally)
@@ -55,7 +55,7 @@ Usage
         --cache-dir       /path/to/preprocessed_cache \
         --output-dir      /path/to/paper_bevs \
         --eval-dirs       /path/to/eval_jsons /path/to/more/eval_jsons \
-        --repo-dir        /path/to/cs269-flow-planner \
+        --repo-dir        /path/to/CS269FlowPlannerProject \
         --bev-seed        42
 
 All arguments except `--cache-dir` and `--checkpoints-dir` have sensible defaults.
@@ -301,7 +301,7 @@ def main() -> int:
         "--repo-dir",
         type=pathlib.Path,
         default=pathlib.Path(__file__).resolve().parent.parent,
-        help="Path to the cs269-flow-planner repository root.",
+        help="Path to the CS269FlowPlannerProject repository root.",
     )
     parser.add_argument(
         "--bev-seed",
