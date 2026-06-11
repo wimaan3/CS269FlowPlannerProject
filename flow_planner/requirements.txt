@@ -3,10 +3,12 @@ flow-matching==1.0.10
 hydra-core==1.3.2
 omegaconf==2.3.0
 scipy==1.13.1
-# torch 2.9.1 closes 18 of the 22 known CVEs in the 2.3 series (we
-# previously pinned 2.3.0; the residual 4 CVEs are training-only and
-# do not apply to this offline, single-host research pipeline).
-torch==2.9.1
+# torch 2.12.0 closes 19 of the 21 known CVEs in the 2.3 series we
+# previously pinned. The 2 residual CVEs (CVE-2025-3000 jit.script,
+# CVE-2026-31221 via pytorch-lightning load_from_checkpoint) do not
+# apply to this codebase — we never call torch.jit.script or Lightning's
+# load_from_checkpoint. See SECURITY.md for the audit trail.
+torch==2.12.0
 tensorboard==2.17.1  # bumped from 2.11.2 — fixes CVE-2023-25658 (path traversal) and CVE-2023-25662 (open redirect)
 timm==1.0.10
 # Notebook extras (used by experiment notebooks and BEV regeneration scripts):
