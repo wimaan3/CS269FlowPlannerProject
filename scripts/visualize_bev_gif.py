@@ -91,7 +91,18 @@ with initialize_config_dir(version_base=None, config_dir=config_dir):
 model = instantiate(cfg.model)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-ckpt = torch.load(CKPT_PATH, weights_only=False, map_location=device)
+try:
+    ckpt = torch.load(CKPT_PATH, weights_only=True, map_location=device)
+except Exception:
+    # Fallback for legacy checkpoints that embed non-tensor Python objects
+    # (e.g. third-party or pre-2.0 checkpoints). Only use on trusted sources.
+    import warnings
+    warnings.warn(
+        f"torch.load(weights_only=True) failed for {CKPT_PATH}; "
+        "falling back to weights_only=False. Ensure the checkpoint file is from a trusted source.",
+        stacklevel=1,
+    )
+    ckpt = torch.load(CKPT_PATH, weights_only=False, map_location=device)
 sd = ckpt.get("ema_state_dict", ckpt.get("state_dict", ckpt))
 sd = {k.replace("module.", ""): v for k, v in sd.items()}
 missing, unexpected = model.load_state_dict(sd, strict=False)

@@ -129,7 +129,18 @@ def main(args):
             ) from e
 
     print(f"Loading checkpoint: {args.checkpoint}")
-    ckpt = torch.load(args.checkpoint, weights_only=False, map_location=device)
+    try:
+        ckpt = torch.load(args.checkpoint, weights_only=True, map_location=device)
+    except Exception:
+        # Fallback for legacy checkpoints that embed non-tensor Python objects
+        # (e.g. third-party or pre-2.0 checkpoints). Only use on trusted sources.
+        import warnings
+        warnings.warn(
+            f"torch.load(weights_only=True) failed for {args.checkpoint}; "
+            "falling back to weights_only=False. Ensure the checkpoint file is from a trusted source.",
+            stacklevel=1,
+        )
+        ckpt = torch.load(args.checkpoint, weights_only=False, map_location=device)
     if "ema_state_dict" in ckpt:
         sd = {k.replace("module.", ""): v for k, v in ckpt["ema_state_dict"].items()}
     elif "state_dict" in ckpt:
