@@ -18,23 +18,15 @@ This document lists every dependency, environment requirement, and known limitat
 
 ## 2. Python dependencies
 
-Every notebook in this repository should install these packages in its first cell:
+All dependencies live in a single file, `flow_planner/requirements.txt`. The fastest setup path is:
 
 ```bash
-pip install -q \
-    flow-matching \
-    einops==0.8.0 \
-    hydra-core==1.3.2 \
-    omegaconf==2.3.0 \
-    scipy==1.13.1 \
-    timm==1.0.10 \
-    dagshub \
-    matplotlib \
-    numpy \
-    pytorch-lightning
+pip install -r flow_planner/requirements.txt
 ```
 
-The pinned versions match `flow_planner/requirements.txt`. The `flow-matching` package is critical — without it, Hydra cannot resolve `flow_planner.model.flow_planner_model.flow_utils.flow_ode.FlowODE` and every model-instantiation step will fail.
+The file pins the core training stack (`torch==2.3.0`, `tensorboard==2.11.2`, `hydra-core==1.3.2`, `omegaconf==2.3.0`, `einops==0.8.0`, `scipy==1.13.1`, `timm==1.0.10`, `flow-matching`) and adds the notebook extras (`dagshub`, `matplotlib`, `numpy`, `pytorch-lightning`).
+
+The `flow-matching` package is critical — without it, Hydra cannot resolve `flow_planner.model.flow_planner_model.flow_utils.flow_ode.FlowODE` and every model-instantiation step will fail.
 
 ---
 
@@ -63,11 +55,11 @@ Every notebook clones this repository fresh into the Colab runtime:
 ```python
 import subprocess, pathlib, sys
 
-REPO_DIR = '/content/cs269-flow-planner'
+REPO_DIR = '/content/CS269FlowPlannerProject'
 if not pathlib.Path(REPO_DIR).exists():
     subprocess.run([
         'git', 'clone', '--depth', '1',
-        'https://github.com/wimaan3/cs269-flow-planner.git',
+        'https://github.com/wimaan3/CS269FlowPlannerProject.git',
         REPO_DIR,
     ], check=True)
 
@@ -171,7 +163,7 @@ for pkg in ['flow_matching', 'hydra', 'omegaconf', 'torch', 'dagshub']:
         print(f'  MISSING     {pkg} (re-run pip install cell)')
 
 # 2. Check the vendored flow_planner package is importable
-sys.path.insert(0, '/content/cs269-flow-planner/flow_planner')
+sys.path.insert(0, '/content/CS269FlowPlannerProject/flow_planner')
 try:
     importlib.import_module('flow_planner.model.flow_planner_model.flow_utils.flow_ode')
     print('  resolvable  flow_planner.model.flow_planner_model.flow_utils.flow_ode.FlowODE')
@@ -194,7 +186,7 @@ print(f'  GPU         {torch.cuda.get_device_name(0) if torch.cuda.is_available(
 ## 10. Repository layout
 
 ```
-cs269-flow-planner/
+CS269FlowPlannerProject/
 ├── README.md                 high-level project description
 ├── QUICKSTART.md             this file
 ├── flow_planner/             vendored fork of Flow Planner with audit patches

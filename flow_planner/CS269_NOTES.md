@@ -177,21 +177,43 @@ Defines the encoder + decoder hyperparameters.
 
 ---
 
-### 7. `flow_planner/script/normalization_stats/frenet_norm_stats.yaml` — **NEW FILE**
+### 7. `flow_planner/script/normalization_stats/frenet_norm_stats.yaml` — **NEW FILE (legacy v0)**
 
 **Purpose:** Per-feature mean/std for the Frenet `(s, d, cos_h, sin_h)`
 target. Used by the `StateNormalizer` during training (target normalization)
 and inference (target denormalization). Mirrors upstream's `waypoints_norm_stats.yaml`.
 
-**Currently:** `mean: [31, 0, 1, 0]`, `std: [26, 16, 0.3, 0.3]`. Measured
-empirically from 1500 mini-split scenarios after Option B's centerline fix —
-**but BEFORE the 2026-05-29 frame-mismatch bug fix**. The inflated `d` std
-of 16 m is a known artifact of the bug; the actual world-scale `d`
-distribution is much tighter (sub-metre for centerline-following ego). Re-
-measure these statistics on a post-fix preprocessed cache before any v6
-training run. See [../docs/research/cs269_modifications_review.md](../docs/research/cs269_modifications_review.md)
-CRITICAL #1 for the bug, and item 2 of "Phase-3 action items" below for the
-re-measure protocol.
+**Currently:** `mean: [31, 0, 1, 0]`, `std: [26, 16, 1.0, 1.0]`. The `s` and
+`d` channel stats were measured empirically from 1500 mini-split scenarios.
+The `cos_h`/`sin_h` stds were bumped from the originally-measured `0.3` to
+`1.0` to match `waypoints_norm_stats.yaml` convention (audit Finding 1:
+`std=0.3` inflated the heading gradient ~11× relative to the (s, d) channels
+under the sum-over-channels MSE). The `d` std of `16 m` is a pre-bugfix
+artifact of the cartesian-to-Frenet frame mismatch; the post-bugfix `d`
+distribution is much tighter, which motivated the v1 config below.
+
+### 7b. `flow_planner/script/normalization_stats/frenet_norm_stats_v1.yaml` — **NEW FILE (paper-headline config)**
+
+**Purpose:** The Frenet norm-stats config used by **all paper-headline 5{,}000-scenario Frenet runs** (`frenet_seed42.ckpt`, `frenet_seed42_fixedCB.ckpt`).
+
+**Differences from the v0 config above:** the `d` channel is now in the
+bounded range `[-1, +1]` (image of `tanh(d/3)`), so the `d`-std is reduced
+from `16` to `0.5`. The `cos_h`/`sin_h` stds remain `1.0` (matching the v0
+fix). This config is **paired** with the v8 Frenet env vars set in the
+training notebook:
+
+- `FRENET_TANH_D=1` (cartesian_to_frenet returns `tanh(d/3)`)
+- `FRENET_TANH_D_SCALE=3.0`
+- `FRENET_SMART_CENTERLINE=1` (smart-centerline picker uses `ego_past` + all lanes)
+
+**Stats:** `ego.uniform.mean = [31, 0, 1, 0]`, `ego.uniform.std = [26, 0.5, 1.0, 1.0]`.
+
+**Which notebooks use which:** Five of the eight notebooks (`paper_baseline`,
+`motion_representations`, `recover_all`, `v8_team`, `v8_frenet_fixes`) use
+`frenet_norm_stats` (legacy v0) for the small-scale 1{,}500-scenario runs.
+The two paper-headline 5{,}000-scenario notebooks
+(`cs269_dagshub_best_ever_frenet`, `cs269_frenet_every_advantage`) use
+`frenet_norm_stats_v1`.
 
 ---
 
@@ -295,3 +317,13 @@ CRITICAL normalization-frame bugs in the Frenet pipeline closed; silent-drop
 guard added to `FlowPlanner.__init__`; six new tests landed in
 `tests/test_frenet_integration.py`; `frenet_norm_stats.yaml` flagged for
 re-measurement before v6 training).
+
+---
+
+### Upstream demo assets removed
+
+The upstream `flow_planner/assets/` directory (rollout GIFs and case-study PNGs
+shipped with Tan et al.'s public release) has been removed from this vendored
+fork to keep `git clone` size minimal. Diff against the upstream commit
+`006b9a5` (or the upstream public release) to recover them if needed for
+side-by-side qualitative comparison.
