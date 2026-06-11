@@ -1,0 +1,15 @@
+{
+  "kinematic": "frenet",
+  "num_scenarios_evaluated": 300,
+  "ade_mean": 25.942291259765625,
+  "ade_std": 18.170263290405273,
+  "fde_mean": 43.222503662109375,
+  "fde_std": 33.27131652832031,
+  "checkpoint": "/content/drive/MyDrive/cs269/v8_frenet_fixes/checkpoints/v8_V11_velocity_seed269.ckpt",
+  "seed": 269,
+  "norm_stats": "waypoints_norm_stats",
+  "inference_hook": null,
+  "frenet_env": {},
+  "num_batches": 999,
+  "batch_size": 32
+}

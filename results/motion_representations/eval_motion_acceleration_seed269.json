@@ -1,0 +1,15 @@
+{
+  "kinematic": "acceleration",
+  "num_scenarios_evaluated": 300,
+  "ade_mean": 19.981719970703125,
+  "ade_std": 5.108248710632324,
+  "fde_mean": 35.60261917114258,
+  "fde_std": 11.207756042480469,
+  "checkpoint": "/content/drive/MyDrive/cs269/motion_representations/checkpoints/motion_acceleration_seed269.ckpt",
+  "seed": 0,
+  "norm_stats": "waypoints_norm_stats",
+  "inference_hook": null,
+  "frenet_env": {},
+  "num_batches": 999,
+  "batch_size": 32
+}

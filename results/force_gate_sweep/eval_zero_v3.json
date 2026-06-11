@@ -1,0 +1,9 @@
+{
+  "kinematic": "frenet",
+  "num_scenarios_evaluated": 300,
+  "ade_mean": 31.8627872467041,
+  "ade_std": 31.606117248535156,
+  "fde_mean": 44.194190979003906,
+  "fde_std": 49.65755844116211,
+  "checkpoint": "/content/work/force_gate_ckpts_v2/gate_zero.ckpt"
+}

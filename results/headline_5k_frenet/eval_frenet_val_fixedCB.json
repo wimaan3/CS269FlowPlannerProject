@@ -1,0 +1,19 @@
+{
+  "kinematic": "frenet",
+  "num_scenarios_evaluated": 4992,
+  "ade_mean": 21.0009765625,
+  "ade_std": 16.467809677124023,
+  "fde_mean": 26.42265510559082,
+  "fde_std": 25.98687744140625,
+  "checkpoint": "/content/work/checkpoints/frenet_seed42_fixedCB.ckpt",
+  "seed": 0,
+  "norm_stats": "frenet_norm_stats_v1",
+  "inference_hook": null,
+  "frenet_env": {
+    "FRENET_TANH_D_SCALE": "3.0",
+    "FRENET_SMART_CENTERLINE": "1",
+    "FRENET_TANH_D": "1"
+  },
+  "num_batches": 156,
+  "batch_size": 32
+}

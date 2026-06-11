@@ -1,0 +1,15 @@
+{
+  "kinematic": "frenet",
+  "num_scenarios_evaluated": 300,
+  "ade_mean": 25.769214630126953,
+  "ade_std": 27.328929901123047,
+  "fde_mean": 37.76906204223633,
+  "fde_std": 44.47362518310547,
+  "checkpoint": "/content/drive/MyDrive/cs269/motion_representations/checkpoints/motion_frenet_seed269.ckpt",
+  "seed": 0,
+  "norm_stats": "frenet_norm_stats",
+  "inference_hook": null,
+  "frenet_env": {},
+  "num_batches": 999,
+  "batch_size": 32
+}

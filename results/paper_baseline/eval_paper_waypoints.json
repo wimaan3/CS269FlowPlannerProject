@@ -1,0 +1,15 @@
+{
+  "kinematic": "waypoints",
+  "num_scenarios_evaluated": 300,
+  "ade_mean": 4.21243143081665,
+  "ade_std": 4.261530876159668,
+  "fde_mean": 8.77901554107666,
+  "fde_std": 9.50802230834961,
+  "checkpoint": "/content/drive/MyDrive/cs269/paper_baseline/checkpoints/paper_baseline_waypoints_seed269.ckpt",
+  "seed": 0,
+  "norm_stats": "waypoints_norm_stats",
+  "inference_hook": null,
+  "frenet_env": {},
+  "num_batches": 999,
+  "batch_size": 32
+}

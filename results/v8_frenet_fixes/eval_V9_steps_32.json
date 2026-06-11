@@ -1,0 +1,15 @@
+{
+  "kinematic": "frenet",
+  "num_scenarios_evaluated": 300,
+  "ade_mean": 27.041494369506836,
+  "ade_std": 31.726913452148438,
+  "fde_mean": 42.796688079833984,
+  "fde_std": 48.469764709472656,
+  "checkpoint": "/content/drive/MyDrive/cs269/checkpoints/v7AUDIT_frenet_seed269.ckpt",
+  "seed": 269,
+  "norm_stats": "frenet_norm_stats",
+  "inference_hook": null,
+  "frenet_env": {},
+  "num_batches": 999,
+  "batch_size": 32
+}

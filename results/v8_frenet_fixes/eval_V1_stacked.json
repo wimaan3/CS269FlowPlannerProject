@@ -1,0 +1,9 @@
+{
+  "kinematic": "frenet",
+  "num_scenarios_evaluated": 300,
+  "ade_mean": 35.83858871459961,
+  "ade_std": 28.70556640625,
+  "fde_mean": 45.609413146972656,
+  "fde_std": 41.283451080322266,
+  "checkpoint": "/content/drive/MyDrive/cs269/v8_frenet_fixes/checkpoints/v8_V1_stacked_seed269.ckpt"
+}
