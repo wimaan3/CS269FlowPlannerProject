@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0",
   "generated_for": "CS269 Flow Planner — local BEV inventory",
-  "repo_root": "/home/imaansol/269PROJ",
-  "archive_root": "/home/imaansol/cs269_archive",
+  "repo_root": ".",
+  "archive_root": "${CS269_ARCHIVE_ROOT}",
   "notes": [
     "Catalog covers the curated copies under bevs/ in the repo.",
-    "Originals live under /home/imaansol/cs269_archive/ and are referenced in 'archive_origin' per entry.",
+    "Originals live under ${CS269_ARCHIVE_ROOT} (set this env var to your local archive directory) and are referenced as relative paths in 'archive_origin' per entry.",
     "Local preprocessed .npz cache is unavailable, so BEVs cannot be re-generated from the listed checkpoints.",
     "scene IDs (12, 57, 125, 140) index the alphabetically-sorted preprocessed .npz cache and are deterministic given that cache."
   ],

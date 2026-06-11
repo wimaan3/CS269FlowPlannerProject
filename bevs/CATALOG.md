@@ -198,4 +198,10 @@ All against `v8_frenet_fixes/v7AUDIT_frenet_seed269.ckpt` unless otherwise noted
 
 ## Provenance
 
-Originals live under `/home/imaansol/cs269_archive/` (not in the repo). Each entry in `catalog.json` carries an `archive_origin` field pointing back to the source path. Local checkpoints used to produce these BEVs are listed in the corresponding `source_checkpoint` field; the preprocessed `.npz` cache required to re-run inference is not available on this machine.
+Originals live in a local archive directory outside the repo, referenced as
+`${CS269_ARCHIVE_ROOT}` in [`catalog.json`](catalog.json). Each entry carries
+an `archive_origin` field giving the path relative to that archive root.
+Local checkpoints used to produce these BEVs are named in the corresponding
+`source_checkpoint` field; the preprocessed `.npz` cache required to re-run
+inference is not bundled with the repo (see
+[`QUICKSTART.md`](../QUICKSTART.md) for the data-access path).
