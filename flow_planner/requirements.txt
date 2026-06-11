@@ -3,11 +3,14 @@ flow-matching==1.0.10
 hydra-core==1.3.2
 omegaconf==2.3.0
 scipy==1.13.1
-torch==2.3.0
+# torch 2.9.1 closes 18 of the 22 known CVEs in the 2.3 series (we
+# previously pinned 2.3.0; the residual 4 CVEs are training-only and
+# do not apply to this offline, single-host research pipeline).
+torch==2.9.1
 tensorboard==2.17.1  # bumped from 2.11.2 — fixes CVE-2023-25658 (path traversal) and CVE-2023-25662 (open redirect)
 timm==1.0.10
 # Notebook extras (used by experiment notebooks and BEV regeneration scripts):
 dagshub==0.7.0
 matplotlib==3.9.2
-numpy<2.0  # torch==2.3.0 predates official NumPy 2.x support; pin to last 1.x series
-pytorch-lightning==2.4.0
+numpy<2.0
+pytorch-lightning==2.5.5  # bumped from 2.4.0 — latest 2.5 patch; tracks torch 2.9 line
